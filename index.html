@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gravity simulation with d3</title>
+    <script src="https://d3js.org/d3.v5.min.js"></script> 
+    <script src = 'drawFrame.js'></script>
+    <script src = 'simulate.js'></script>
+    <script src = "handleDragging.js"></script>
+</head>
+
+<style>
+    body{
+        background: black;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    
+    .svgElement {
+        border: 1px solid white;
+        background: rgb(15, 15, 15);
+    }
+
+</style>
+<body>  
+    
+    <div>
+        <div>
+            <button id = 'startSimulation'>Start</button>
+            <button id = 'pauseSimulation'>Pause</button>
+            <button id = 'resetSimulation'>Reset</button>
+        </div>
+
+        <svg class = "svgElement" id = "svgSimulation"></svg>
+
+        <svg class = "svgElement" id = "svgData" ></svg>
+
+    </div>
+
+    <script>
+        const svgSimulationWidth = .8*window.innerWidth;
+        const svgSimulationHeight = .9*window.innerHeight;
+
+    //Simulation scene
+        const svgSimulation = d3.select("#svgSimulation")
+            .attr("width", svgSimulationWidth)
+            .attr("height", svgSimulationHeight);
+
+        const pixelsPerUnit = 40;
+        const x = d3.scaleLinear()
+            .domain([-svgSimulationWidth/(2*pixelsPerUnit), svgSimulationWidth/(2*pixelsPerUnit)])
+            .range([0, svgSimulationWidth]);
+
+    // Declare the y (vertical position) scale.
+        const y = d3.scaleLinear()
+            .domain([-svgSimulationHeight/(2*pixelsPerUnit), svgSimulationHeight/(2*pixelsPerUnit)])
+            .range([svgSimulationHeight, 0]);
+
+    //Data scene 
+        const svgDataWidth = .15 * window.innerWidth;
+        const svgDataHeight = .9 * window.innerHeight;
+
+        const svgData = d3.select('#svgData')
+            .attr("width" , svgDataWidth)
+            .attr("height", svgDataHeight);
+
+        //Data setup
+
+        const initialConditions = {
+            pos: {x: .2*svgSimulationWidth, y: .2*svgSimulationHeight},
+            vel: {x: 0, y: 0}
+        };
+
+        var ball = {
+            mass: 1,
+            radius: 8, //pixels
+            pos: {
+                x: initialConditions.pos.x, 
+                y: initialConditions.pos.y
+            },
+            vel:{
+                 x: initialConditions.vel.x, 
+                 y: initialConditions.vel.y
+                },
+            acc:{
+                x: 0,
+                y: 0,
+            },
+            isDragging: false,
+        };
+
+        const scaleVector = .25;
+
+        var vectorController = {
+            pos: {
+                x: initialConditions.pos.x + scaleVector * initialConditions.vel.x,
+                y: initialConditions.pos.y + scaleVector * initialConditions.vel.y
+            },
+            radius: 15,
+            isDragging: false
+        }
+
+        const massiveBall = {
+            radius: 50,
+            pos: {
+                x: svgSimulationWidth/2, 
+                y: svgSimulationHeight/2
+            }
+        }
+
+    //Physics parameters
+
+        const k = 1000000;
+        const eCoef = 1;
+
+        var distanceBalls = Math.sqrt(
+             (massiveBall.pos.x - ball.pos.x)**2 + 
+             (massiveBall.pos.y - ball.pos.y)**2
+              );
+
+        ball.acc = {
+            x: k*(massiveBall.pos.x - ball.pos.x)/(distanceBalls**3), 
+            y: k*(massiveBall.pos.y - ball.pos.y)/(distanceBalls**3) 
+        };
+    
+    
+    //scene
+        const fps = 60;
+        const timeStep = 1/fps; 
+        var frame = 0;
+        var t = 0;
+        
+    //Simulation setup
+        var isSimulating = true; 
+        var startButtonCount = 0;
+        
+    //Drawing massive ball
+        svgSimulation.append('circle')
+            .attr('r', massiveBall.radius)
+            .attr('cx', massiveBall.pos.x)
+            .attr('cy', massiveBall.pos.y)
+            .attr('fill', '#0fa');
+
+        drawFrame();
+        
+
+    //Handle simulation start, pause, reset    
+        document.getElementById('startSimulation')
+                .addEventListener('click', startSimulation);
+
+        document.getElementById('pauseSimulation')
+                .addEventListener('click', pauseSimulation);
+
+        document.getElementById('resetSimulation')
+                .addEventListener('click', resetSimulation);
+    
+         
+    //Get svg frame border            
+        const rect = svgSimulation.node().getBoundingClientRect();
+
+    //Handle draggig the vector
+        svgSimulation.node().addEventListener('mousedown', vectorMouseDown);        
+        svgSimulation.node().addEventListener('mousemove', vectorMouseMove);
+        svgSimulation.node().addEventListener('mouseup', vectorMouseUp);
+
+    </script>
+</body>
+</html>
